@@ -6,3 +6,5 @@ pandas
 python-dotenv
 opentelemetry-api
 PyMuPDF
+beautifulsoup4
+msal

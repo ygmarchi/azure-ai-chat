@@ -187,6 +187,97 @@ def extract_text_from_pdf(pdf_path, model: str):
  
     return text_data
 
+def extract_text_from_web_page(
+    initial_url,
+    model
+) :
+    """Load data from the urls.
+
+    Args:
+        urls (List[str]): List of URLs to scrape.
+        custom_hostname (Optional[str]): Force a certain hostname in the case
+            a website is displayed under custom URLs (e.g. Substack blogs)
+        include_url_in_text (Optional[bool]): Include the reference url in the text of the document
+
+    Returns:
+        List[Document]: List of documents.
+
+    """
+    from urllib.parse import urlparse
+
+    import requests
+    from bs4 import BeautifulSoup
+
+    documents = []
+    urls = [initial_url]    
+    cookies = {'JSESSIONID': 'ED4CEED48F7F2272F4C8ABC530D5D011'}
+
+    while len(urls) != 0:
+        url = urls.pop()
+        print (f'Processing ...{url[-20:]}')
+        page = requests.get(url, cookies=cookies)
+        status_code = page.status_code
+        print (f'http status {status_code}')
+        if status_code == 200:
+            soup = BeautifulSoup(page.content, "html.parser")
+            title = soup.find('title')
+            text = soup.getText()
+
+            id = get_hash (text)
+            emb = embeddings.embed(input=text, model=model)        
+            documents.append({
+                "id": id, 
+                "content": text, 
+                "filepath": url, 
+                "title": title, 
+                "url": url, 
+                "contentVector": emb.data[0].embedding,
+            })
+
+            link_elements = soup.select("a[href]")        
+
+            for link_element in link_elements:
+                link_url = link_element['href']
+                if initial_url in link_url:
+                    urls.append (link_url)
+        else:
+            print ('skipping')
+
+    return documents       
+
+def extract_text_from_db(
+    connection_string,
+    model
+) :
+    None
+
+def create_index_from_web_page(index_name, initial_url):
+    # If a search index already exists, delete it:
+    try:
+        index_definition = index_client.get_index(index_name)
+        index_client.delete_index(index_name)
+        logger.info(f"🗑  Found existing index named '{index_name}', and deleted it")
+    except Exception:
+        pass
+
+    # create an empty search index
+    index_definition = create_index_definition(index_name, model=os.environ["EMBEDDINGS_MODEL"])
+    index_client.create_index(index_definition)
+
+    # create documents from the products.csv file, generating vector embeddings for the "description" column        
+    docs = extract_text_from_web_page(initial_url=initial_url, model=os.environ["EMBEDDINGS_MODEL"])
+
+    # Add the documents to the index using the Azure AI Search client
+    search_client = SearchClient(
+        endpoint=search_connection.endpoint_url,
+        index_name=index_name,
+        credential=AzureKeyCredential(key=search_connection.key),
+    )
+
+    search_client.upload_documents(docs)
+    logger.info(f"Uploaded {len(docs)} documents to '{index_name}' index")
+
+
 def create_index_from_pdfs(index_name, pdf_dir):
     # If a search index already exists, delete it:
     try:
@@ -212,7 +303,38 @@ def create_index_from_pdfs(index_name, pdf_dir):
 
     search_client.upload_documents(docs)
     logger.info(f"Uploaded {len(docs)} documents to '{index_name}' index")
+
+def get_hash(content, algorithm='sha256'):
+    """
+    Generate hash of file content
     
+    Args:
+        content (str): vontent of file
+        algorithm (str, optional): Hash algorithm to use. Defaults to 'sha256'.
+    
+    Returns:
+        str: Hexadecimal hash of file content
+    """
+    hash_algorithms = {
+        'md5': hashlib.md5,
+        'sha1': hashlib.sha1,
+        'sha256': hashlib.sha256,
+        'sha512': hashlib.sha512
+    }
+    
+    # Select hash algorithm
+    hash_func = hash_algorithms.get(algorithm.lower())
+    if not hash_func:
+        raise ValueError(f"Unsupported hash algorithm: {algorithm}")
+    
+    # Create hash object
+    hash_obj = hash_func()
+    
+    # Read and hash file in chunks to handle large files
+    hash_obj.update(content.encode(encoding = 'UTF-8', errors = 'strict'))
+    
+    return hash_obj.hexdigest()
+
 def get_file_hash(file_path, algorithm='sha256'):
     """
     Generate hash of file content
@@ -265,13 +387,13 @@ if __name__ == "__main__":
         default=os.environ["AISEARCH_INDEX_NAME"],
     )
     parser.add_argument(
-        "--pdf-dir", 
+        "--initial-url", 
         type=str, 
         help="path to data for creating search index", 
-        default="C:/Users/carlo.marchiori/Downloads/Elenco pubblicazioni - 20241107T135114Z-001/Elenco pubblicazioni"
+        default="https://home.intesys.it/wiki"
     )
     args = parser.parse_args()
     index_name = args.index_name
-    pdf_dir = args.pdf_dir
+    initial_url = args.initial_url
 
-    create_index_from_pdfs(index_name, pdf_dir)
+    create_index_from_web_page(index_name, initial_url)
