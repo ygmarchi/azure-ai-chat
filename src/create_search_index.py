@@ -246,10 +246,80 @@ def extract_text_from_web_page(
     return documents       
 
 def extract_text_from_db(
-    connection_string,
-    model
+    host, user, password, database, model
 ) :
-    None
+    import mysql.connector    
+    
+    mydb = mysql.connector.connect(
+        host=host,
+        user=user,
+        password=password,
+        database=database
+    )
+
+    mycursor = mydb.cursor()
+
+    mycursor.execute("""
+        SELECT pageid, title, content 
+        FROM ( 
+            SELECT *, 
+                ROW_NUMBER() OVER (PARTITION BY title ORDER BY version DESC) AS row_num 
+            FROM WikiPage 
+        ) ranked 
+        WHERE row_num = 1
+        AND LENGTH (content) > 0
+    """)
+
+    rows = mycursor.fetchall()
+    row_idx = 0
+
+    for row in rows:
+        documents = []
+        row_idx += 1
+        page_id = row[0]
+        title = row[1]
+        text = row[2]
+        url = f"WikiPage?id={page_id}"
+        print (f'Processing page {str (row_idx).zfill(4)}) {page_id} - {title}')
+
+        chunks = html_split(text)
+        for i, chunk in enumerate(chunks):
+            id = get_hash((page_id, i, chunk.page_content))
+            emb = embeddings.embed(input=chunk.page_content, model=model)        
+            documents.append({
+                "id": id, 
+                "content": chunk.page_content, 
+                "filepath": url, 
+                "title": title, 
+                "url": url, 
+                "contentVector": emb.data[0].embedding,
+            })
+
+        yield documents
+    
+
+def html_split(html_string, chunk_size = 500, chunk_overlap = 30):
+    from langchain_text_splitters import HTMLSectionSplitter
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+    headers_to_split_on = [
+        ("h1", "Header 1"),
+        ("h2", "Header 2"),
+        ("h3", "Header 3"),
+        ("h4", "Header 4"),
+    ]
+
+    html_splitter = HTMLSectionSplitter(headers_to_split_on=headers_to_split_on)
+
+    html_header_splits = html_splitter.split_text(html_string)
+
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=chunk_size, chunk_overlap=chunk_overlap
+    )
+
+    # Split
+    splits = text_splitter.split_documents(html_header_splits)
+    return splits
 
 def create_index_from_web_page(index_name, initial_url):
     # If a search index already exists, delete it:
@@ -276,6 +346,31 @@ def create_index_from_web_page(index_name, initial_url):
 
     search_client.upload_documents(docs)
     logger.info(f"Uploaded {len(docs)} documents to '{index_name}' index")
+
+def create_index_from_db(index_name, host, user, password, database):
+    # If a search index already exists, delete it:
+    try:
+        index_definition = index_client.get_index(index_name)
+        index_client.delete_index(index_name)
+        logger.info(f"🗑  Found existing index named '{index_name}', and deleted it")
+    except Exception:
+        pass
+
+    # create an empty search index
+    index_definition = create_index_definition(index_name, model=os.environ["EMBEDDINGS_MODEL"])
+    index_client.create_index(index_definition)
+
+    # Add the documents to the index using the Azure AI Search client
+    search_client = SearchClient(
+        endpoint=search_connection.endpoint_url,
+        index_name=index_name,
+        credential=AzureKeyCredential(key=search_connection.key),
+    )
+
+    # create documents from the products.csv file, generating vector embeddings for the "description" column        
+    for docs in extract_text_from_db(host=host, user=user, password=password, database=database, model=os.environ["EMBEDDINGS_MODEL"]):
+        search_client.upload_documents(docs)
+        logger.info(f"Uploaded {len(docs)} documents to '{index_name}' index")
 
 
 def create_index_from_pdfs(index_name, pdf_dir):
@@ -330,8 +425,9 @@ def get_hash(content, algorithm='sha256'):
     # Create hash object
     hash_obj = hash_func()
     
-    # Read and hash file in chunks to handle large files
-    hash_obj.update(content.encode(encoding = 'UTF-8', errors = 'strict'))
+    for element in content:
+        # Read and hash file in chunks to handle large files
+        hash_obj.update(str (element).encode(encoding = 'UTF-8', errors = 'strict'))
     
     return hash_obj.hexdigest()
 
@@ -378,6 +474,7 @@ def get_file_hash(file_path, algorithm='sha256'):
 
 if __name__ == "__main__":
     import argparse
+    import sys
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -387,13 +484,29 @@ if __name__ == "__main__":
         default=os.environ["AISEARCH_INDEX_NAME"],
     )
     parser.add_argument(
-        "--initial-url", 
+        "--host", 
         type=str, 
-        help="path to data for creating search index", 
-        default="https://home.intesys.it/wiki"
+        help="database host", 
+        default="192.168.1.110"
     )
-    args = parser.parse_args()
-    index_name = args.index_name
-    initial_url = args.initial_url
+    parser.add_argument(
+        "--user", 
+        type=str, 
+        help="database user", 
+        default="ext.read.user"
+    )
+    parser.add_argument(
+        "--password", 
+        type=str, 
+        help="database password",
+        required=True
+    )
+    parser.add_argument(
+        "--database", 
+        type=str, 
+        help="database name", 
+        default="lportal711_prod_utf8mb4"
+    )
 
-    create_index_from_web_page(index_name, initial_url)
+    args = parser.parse_args()
+    create_index_from_db(args.index_name, user=args.user, password=args.password, host=args.host, database=args.database)

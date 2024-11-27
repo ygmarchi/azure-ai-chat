@@ -7,4 +7,5 @@ python-dotenv
 opentelemetry-api
 PyMuPDF
 beautifulsoup4
-msal
+mysql-connector-python
+langchain-text-splitters
