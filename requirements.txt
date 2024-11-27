@@ -2,9 +2,12 @@ azure-ai-projects
 azure-ai-inference[prompts]
 azure-identity
 azure-search-documents
-pandas
-python-dotenv
-opentelemetry-api
-PyMuPDF
 beautifulsoup4
-msal
+langchain-text-splitters
+mysql-connector-python
+opentelemetry-api
+pandas
+python-creole
+python-dotenv
+PyMuPDF
+

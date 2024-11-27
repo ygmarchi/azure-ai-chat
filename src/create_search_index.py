@@ -1,4 +1,3 @@
-import os
 from azure.ai.projects import AIProjectClient
 from azure.ai.projects.models import ConnectionType
 from azure.identity import DefaultAzureCredential
@@ -6,6 +5,11 @@ from azure.core.credentials import AzureKeyCredential
 from azure.search.documents import SearchClient
 from azure.search.documents.indexes import SearchIndexClient
 from config import get_logger
+from creole import creole2html
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_text_splitters import HTMLHeaderTextSplitter
+
+import os
 import fitz  # PyMuPDF
 import hashlib
 
@@ -246,10 +250,90 @@ def extract_text_from_web_page(
     return documents       
 
 def extract_text_from_db(
-    connection_string,
-    model
+    host, user, password, database, model
 ) :
-    None
+    import mysql.connector    
+    
+    mydb = mysql.connector.connect(
+        host=host,
+        user=user,
+        password=password,
+        database=database
+    )
+
+    mycursor = mydb.cursor()
+
+    mycursor.execute("""
+        SELECT * 
+        FROM ( 
+            SELECT  b.description, c.title, a.content, a.format, ROW_NUMBER() OVER (PARTITION BY a.resourcePrimKey ORDER BY a.version DESC) AS row_num 
+            FROM WikiPage a 
+            join WikiNode b on b.nodeId = a.nodeId 
+            join WikiPageResource c on c.resourcePrimKey = a.resourcePrimKey 
+        ) ranked 
+        WHERE row_num = 1
+        AND LENGTH (content) > 0
+        and description <> ''
+    """)
+
+    rows = mycursor.fetchall()
+    row_idx = 0
+    row_count = len (rows)
+
+    for row in rows:
+        documents = []
+        row_idx += 1
+        description = row[0]
+        title = row[1]
+        text = row[2]
+        format = row[3]
+        url = f"https://home.intesys.it/wiki/-/wiki/{description.replace(' ', '+')}/{title.replace(' ', '+')}"
+        print (f'Processing page {row_idx}/{row_count} - {title}')
+
+        chunks = split_content(text, format)
+        for i, chunk in enumerate(chunks):
+            id = get_hash((title, i, chunk.page_content))
+            emb = embeddings.embed(input=chunk.page_content, model=model)        
+            documents.append({
+                "id": id, 
+                "content": chunk.page_content, 
+                "filepath": url, 
+                "title": title, 
+                "url": url, 
+                "contentVector": emb.data[0].embedding,
+            })
+
+        yield documents
+    
+
+def split_content(html_string, format):
+    if format == 'creole':
+        return split_creole (html_string)
+    raise Exception (format)    
+
+def split_creole (creole):
+    html = creole2html (creole)    
+
+    headers_to_split_on = [
+        ("h1", "Header 1"),
+        ("h2", "Header 2"),
+        ("h3", "Header 3"),
+        ("h4", "Header 4"),
+    ]
+
+    html_splitter = HTMLHeaderTextSplitter(headers_to_split_on=headers_to_split_on)
+
+    # for local file use html_splitter.split_text_from_file(<path_to_file>)
+    html_header_splits = html_splitter.split_text (html)
+
+    chunk_size = 500
+    chunk_overlap = 30
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=chunk_size, chunk_overlap=chunk_overlap
+    )
+
+    # Split
+    return text_splitter.split_documents(html_header_splits)
 
 def create_index_from_web_page(index_name, initial_url):
     # If a search index already exists, delete it:
@@ -275,7 +359,39 @@ def create_index_from_web_page(index_name, initial_url):
     )
 
     search_client.upload_documents(docs)
-    logger.info(f"Uploaded {len(docs)} documents to '{index_name}' index")
+    logger.info(f"{len(docs)} documents uploaded to '{index_name}'")
+
+def create_index_from_db(index_name, host, user, password, database, delete_existing):
+    # If a search index already exists, delete it:
+    try:
+        index_definition = index_client.get_index(index_name)
+        if delete_existing:
+            index_client.delete_index(index_name)
+            logger.info(f"🗑  Found existing index named '{index_name}', and deleted it")
+    except Exception:
+        pass
+
+    # create an empty search index
+    index_definition = create_index_definition(index_name, model=os.environ["EMBEDDINGS_MODEL"])
+    index_client.create_index(index_definition)
+
+    # Add the documents to the index using the Azure AI Search client
+    search_client = SearchClient(
+        endpoint=search_connection.endpoint_url,
+        index_name=index_name,
+        credential=AzureKeyCredential(key=search_connection.key),
+    )
+
+    # create documents from the products.csv file, generating vector embeddings for the "description" column        
+    for docs in extract_text_from_db(host=host, user=user, password=password, database=database, model=os.environ["EMBEDDINGS_MODEL"]):
+        try:
+            if (len (docs) > 0):                
+                search_client.upload_documents(docs)
+                logger.info(f"{len(docs)} documents uploaded to '{index_name}'")
+            else:
+                logger.warning("Nothing to upload")    
+        except Exception as e:
+            logger.info(f'Upload failed: {e.args} ({type(e)})')
 
 
 def create_index_from_pdfs(index_name, pdf_dir):
@@ -330,8 +446,9 @@ def get_hash(content, algorithm='sha256'):
     # Create hash object
     hash_obj = hash_func()
     
-    # Read and hash file in chunks to handle large files
-    hash_obj.update(content.encode(encoding = 'UTF-8', errors = 'strict'))
+    for element in content:
+        # Read and hash file in chunks to handle large files
+        hash_obj.update(str (element).encode(encoding = 'UTF-8', errors = 'strict'))
     
     return hash_obj.hexdigest()
 
@@ -378,6 +495,7 @@ def get_file_hash(file_path, algorithm='sha256'):
 
 if __name__ == "__main__":
     import argparse
+    import sys
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -387,13 +505,35 @@ if __name__ == "__main__":
         default=os.environ["AISEARCH_INDEX_NAME"],
     )
     parser.add_argument(
-        "--initial-url", 
+        "--host", 
         type=str, 
-        help="path to data for creating search index", 
-        default="https://home.intesys.it/wiki"
+        help="database host", 
+        default="192.168.1.110"
     )
-    args = parser.parse_args()
-    index_name = args.index_name
-    initial_url = args.initial_url
+    parser.add_argument(
+        "--user", 
+        type=str, 
+        help="database user", 
+        default="ext.read.user"
+    )
+    parser.add_argument(
+        "--password", 
+        type=str, 
+        help="database password",
+        required=True
+    )
+    parser.add_argument(
+        "--database", 
+        type=str, 
+        help="database name", 
+        default="lportal711_prod_utf8mb4"
+    )
+    parser.add_argument(
+        "--delete-exising", 
+        type=bool, 
+        help="delete existing index", 
+        default=False
+    )
 
-    create_index_from_web_page(index_name, initial_url)
+    args = parser.parse_args()
+    create_index_from_db(args.index_name, user=args.user, password=args.password, host=args.host, database=args.database, delete_existing=args.delete_exising)
