@@ -1,0 +1,1536 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "datastores_workspaceartifactstore_secretsType": {
+            "type": "SecureString"
+        },
+        "datastores_workspaceblobstore_secretsType": {
+            "type": "SecureString"
+        },
+        "datastores_workspaceworkingdirectory_secretsType": {
+            "type": "SecureString"
+        },
+        "sites_intesys_wiki_ai_chat_web_name": {
+            "defaultValue": "intesys-wiki-ai-chat-web",
+            "type": "String"
+        },
+        "vaults_kv_intesysw468283610195_name": {
+            "defaultValue": "kv-intesysw468283610195",
+            "type": "String"
+        },
+        "serverfarms_asp_intesys_wiki_ai_chat_web_name": {
+            "defaultValue": "asp-intesys-wiki-ai-chat-web",
+            "type": "String"
+        },
+        "storageAccounts_stintesyswik468283610195_name": {
+            "defaultValue": "stintesyswik468283610195",
+            "type": "String"
+        },
+        "workspaces_intesys_wiki_hub_name": {
+            "defaultValue": "intesys-wiki-hub",
+            "type": "String"
+        },
+        "searchServices_intesys_wiki_search468283610195_name": {
+            "defaultValue": "intesys-wiki-search468283610195",
+            "type": "String"
+        },
+        "workspaces_intesys_wiki_project_name": {
+            "defaultValue": "intesys-wiki-project",
+            "type": "String"
+        },
+        "accounts_intesys_wiki_services468283610195_name": {
+            "defaultValue": "intesys-wiki-services468283610195",
+            "type": "String"
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.CognitiveServices/accounts",
+            "apiVersion": "2024-06-01-preview",
+            "name": "[parameters('accounts_intesys_wiki_services468283610195_name')]",
+            "location": "swedencentral",
+            "sku": {
+                "name": "S0"
+            },
+            "kind": "AIServices",
+            "identity": {
+                "type": "SystemAssigned"
+            },
+            "properties": {
+                "customSubDomainName": "[parameters('accounts_intesys_wiki_services468283610195_name')]",
+                "publicNetworkAccess": "Enabled"
+            }
+        },
+        {
+            "type": "Microsoft.KeyVault/vaults",
+            "apiVersion": "2024-04-01-preview",
+            "name": "[parameters('vaults_kv_intesysw468283610195_name')]",
+            "location": "swedencentral",
+            "properties": {
+                "sku": {
+                    "family": "A",
+                    "name": "standard"
+                },
+                "tenantId": "2cd4ff2e-c457-4901-8faf-c2dbb6119a76",
+                "accessPolicies": [
+                    {
+                        "tenantId": "2cd4ff2e-c457-4901-8faf-c2dbb6119a76",
+                        "objectId": "02640bbe-b121-407a-b2e2-b84e98fda65c",
+                        "permissions": {
+                            "keys": [
+                                "all"
+                            ],
+                            "secrets": [
+                                "all"
+                            ],
+                            "certificates": [
+                                "all"
+                            ],
+                            "storage": []
+                        }
+                    },
+                    {
+                        "tenantId": "2cd4ff2e-c457-4901-8faf-c2dbb6119a76",
+                        "objectId": "d144e391-f068-4b93-bb6e-77e3035f46d1",
+                        "permissions": {
+                            "keys": [
+                                "all"
+                            ],
+                            "secrets": [
+                                "all"
+                            ],
+                            "certificates": [
+                                "all"
+                            ],
+                            "storage": []
+                        }
+                    }
+                ],
+                "enabledForDeployment": false,
+                "enableSoftDelete": true,
+                "vaultUri": "[concat('https://', parameters('vaults_kv_intesysw468283610195_name'), '.vault.azure.net/')]",
+                "provisioningState": "Succeeded",
+                "publicNetworkAccess": "Enabled"
+            }
+        },
+        {
+            "type": "Microsoft.Search/searchServices",
+            "apiVersion": "2024-06-01-preview",
+            "name": "[parameters('searchServices_intesys_wiki_search468283610195_name')]",
+            "location": "Sweden Central",
+            "sku": {
+                "name": "standard"
+            },
+            "properties": {
+                "replicaCount": 1,
+                "partitionCount": 1,
+                "hostingMode": "Default",
+                "publicNetworkAccess": "Enabled",
+                "networkRuleSet": {
+                    "ipRules": [],
+                    "bypass": "None"
+                },
+                "encryptionWithCmk": {
+                    "enforcement": "Unspecified"
+                },
+                "disableLocalAuth": false,
+                "authOptions": {
+                    "apiKeyOnly": {}
+                },
+                "disabledDataExfiltrationOptions": [],
+                "semanticSearch": "disabled"
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2023-05-01",
+            "name": "[parameters('storageAccounts_stintesyswik468283610195_name')]",
+            "location": "swedencentral",
+            "sku": {
+                "name": "Standard_LRS",
+                "tier": "Standard"
+            },
+            "kind": "StorageV2",
+            "properties": {
+                "allowCrossTenantReplication": false,
+                "minimumTlsVersion": "TLS1_2",
+                "allowBlobPublicAccess": false,
+                "networkAcls": {
+                    "bypass": "AzureServices",
+                    "virtualNetworkRules": [],
+                    "ipRules": [],
+                    "defaultAction": "Allow"
+                },
+                "supportsHttpsTrafficOnly": true,
+                "encryption": {
+                    "services": {
+                        "file": {
+                            "keyType": "Account",
+                            "enabled": true
+                        },
+                        "blob": {
+                            "keyType": "Account",
+                            "enabled": true
+                        }
+                    },
+                    "keySource": "Microsoft.Storage"
+                },
+                "accessTier": "Hot"
+            }
+        },
+        {
+            "type": "Microsoft.Web/serverfarms",
+            "apiVersion": "2023-12-01",
+            "name": "[parameters('serverfarms_asp_intesys_wiki_ai_chat_web_name')]",
+            "location": "Italy North",
+            "tags": {
+                "ProjectType": "aoai-your-data-service"
+            },
+            "sku": {
+                "name": "B1",
+                "tier": "Basic",
+                "size": "B1",
+                "family": "B",
+                "capacity": 1
+            },
+            "kind": "linux",
+            "properties": {
+                "perSiteScaling": false,
+                "elasticScaleEnabled": false,
+                "maximumElasticWorkerCount": 1,
+                "isSpot": false,
+                "freeOfferExpirationTime": "2024-12-28T16:25:05.9633333",
+                "reserved": true,
+                "isXenon": false,
+                "hyperV": false,
+                "targetWorkerCount": 0,
+                "targetWorkerSizeId": 0,
+                "zoneRedundant": false
+            }
+        },
+        {
+            "type": "Microsoft.CognitiveServices/accounts/defenderForAISettings",
+            "apiVersion": "2024-06-01-preview",
+            "name": "[concat(parameters('accounts_intesys_wiki_services468283610195_name'), '/Default')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.CognitiveServices/accounts', parameters('accounts_intesys_wiki_services468283610195_name'))]"
+            ],
+            "properties": {
+                "state": "Disabled"
+            }
+        },
+        {
+            "type": "Microsoft.CognitiveServices/accounts/deployments",
+            "apiVersion": "2024-06-01-preview",
+            "name": "[concat(parameters('accounts_intesys_wiki_services468283610195_name'), '/gpt-4o-mini')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.CognitiveServices/accounts', parameters('accounts_intesys_wiki_services468283610195_name'))]"
+            ],
+            "sku": {
+                "name": "GlobalStandard",
+                "capacity": 10
+            },
+            "properties": {
+                "model": {
+                    "format": "OpenAI",
+                    "name": "gpt-4o-mini",
+                    "version": "2024-07-18"
+                },
+                "versionUpgradeOption": "OnceNewDefaultVersionAvailable",
+                "currentCapacity": 10,
+                "raiPolicyName": "Microsoft.DefaultV2"
+            }
+        },
+        {
+            "type": "Microsoft.CognitiveServices/accounts/deployments",
+            "apiVersion": "2024-06-01-preview",
+            "name": "[concat(parameters('accounts_intesys_wiki_services468283610195_name'), '/text-embedding-ada-002')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.CognitiveServices/accounts', parameters('accounts_intesys_wiki_services468283610195_name'))]"
+            ],
+            "sku": {
+                "name": "Standard",
+                "capacity": 110
+            },
+            "properties": {
+                "model": {
+                    "format": "OpenAI",
+                    "name": "text-embedding-ada-002",
+                    "version": "2"
+                },
+                "versionUpgradeOption": "OnceNewDefaultVersionAvailable",
+                "currentCapacity": 110,
+                "raiPolicyName": "Microsoft.DefaultV2"
+            }
+        },
+        {
+            "type": "Microsoft.CognitiveServices/accounts/raiPolicies",
+            "apiVersion": "2024-06-01-preview",
+            "name": "[concat(parameters('accounts_intesys_wiki_services468283610195_name'), '/Microsoft.Default')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.CognitiveServices/accounts', parameters('accounts_intesys_wiki_services468283610195_name'))]"
+            ],
+            "properties": {
+                "mode": "Blocking",
+                "contentFilters": [
+                    {
+                        "name": "Hate",
+                        "severityThreshold": "Medium",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Prompt"
+                    },
+                    {
+                        "name": "Hate",
+                        "severityThreshold": "Medium",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Completion"
+                    },
+                    {
+                        "name": "Sexual",
+                        "severityThreshold": "Medium",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Prompt"
+                    },
+                    {
+                        "name": "Sexual",
+                        "severityThreshold": "Medium",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Completion"
+                    },
+                    {
+                        "name": "Violence",
+                        "severityThreshold": "Medium",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Prompt"
+                    },
+                    {
+                        "name": "Violence",
+                        "severityThreshold": "Medium",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Completion"
+                    },
+                    {
+                        "name": "Selfharm",
+                        "severityThreshold": "Medium",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Prompt"
+                    },
+                    {
+                        "name": "Selfharm",
+                        "severityThreshold": "Medium",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Completion"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.CognitiveServices/accounts/raiPolicies",
+            "apiVersion": "2024-06-01-preview",
+            "name": "[concat(parameters('accounts_intesys_wiki_services468283610195_name'), '/Microsoft.DefaultV2')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.CognitiveServices/accounts', parameters('accounts_intesys_wiki_services468283610195_name'))]"
+            ],
+            "properties": {
+                "mode": "Blocking",
+                "contentFilters": [
+                    {
+                        "name": "Hate",
+                        "severityThreshold": "Medium",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Prompt"
+                    },
+                    {
+                        "name": "Hate",
+                        "severityThreshold": "Medium",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Completion"
+                    },
+                    {
+                        "name": "Sexual",
+                        "severityThreshold": "Medium",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Prompt"
+                    },
+                    {
+                        "name": "Sexual",
+                        "severityThreshold": "Medium",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Completion"
+                    },
+                    {
+                        "name": "Violence",
+                        "severityThreshold": "Medium",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Prompt"
+                    },
+                    {
+                        "name": "Violence",
+                        "severityThreshold": "Medium",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Completion"
+                    },
+                    {
+                        "name": "Selfharm",
+                        "severityThreshold": "Medium",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Prompt"
+                    },
+                    {
+                        "name": "Selfharm",
+                        "severityThreshold": "Medium",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Completion"
+                    },
+                    {
+                        "name": "Jailbreak",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Prompt"
+                    },
+                    {
+                        "name": "Protected Material Text",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Completion"
+                    },
+                    {
+                        "name": "Protected Material Code",
+                        "blocking": false,
+                        "enabled": true,
+                        "source": "Completion"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.KeyVault/vaults/secrets",
+            "apiVersion": "2024-04-01-preview",
+            "name": "[concat(parameters('vaults_kv_intesysw468283610195_name'), '/cb0656be-8ec1-4f59-952b-524c9f6b656a-workspaceartifactstore00010101000000000')]",
+            "location": "swedencentral",
+            "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', parameters('vaults_kv_intesysw468283610195_name'))]"
+            ],
+            "properties": {
+                "contentType": "application/vnd.ms-StorageAccountAccessKey",
+                "attributes": {
+                    "enabled": true,
+                    "exp": 1795854710
+                }
+            }
+        },
+        {
+            "type": "Microsoft.KeyVault/vaults/secrets",
+            "apiVersion": "2024-04-01-preview",
+            "name": "[concat(parameters('vaults_kv_intesysw468283610195_name'), '/cb0656be-8ec1-4f59-952b-524c9f6b656a-workspaceblobstore00010101000000000')]",
+            "location": "swedencentral",
+            "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', parameters('vaults_kv_intesysw468283610195_name'))]"
+            ],
+            "properties": {
+                "contentType": "application/vnd.ms-StorageAccountAccessKey",
+                "attributes": {
+                    "enabled": true,
+                    "exp": 1795854710
+                }
+            }
+        },
+        {
+            "type": "Microsoft.KeyVault/vaults/secrets",
+            "apiVersion": "2024-04-01-preview",
+            "name": "[concat(parameters('vaults_kv_intesysw468283610195_name'), '/cb0656be-8ec1-4f59-952b-524c9f6b656a-workspaceworkingdirectory00010101000000000')]",
+            "location": "swedencentral",
+            "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', parameters('vaults_kv_intesysw468283610195_name'))]"
+            ],
+            "properties": {
+                "contentType": "application/vnd.ms-StorageAccountAccessKey",
+                "attributes": {
+                    "enabled": true,
+                    "exp": 1795854709
+                }
+            }
+        },
+        {
+            "type": "Microsoft.KeyVault/vaults/secrets",
+            "apiVersion": "2024-04-01-preview",
+            "name": "[concat(parameters('vaults_kv_intesysw468283610195_name'), '/ecabdfd2-6e7f-4a8c-8420-e3ca27832cc3-AzureAISearch')]",
+            "location": "swedencentral",
+            "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', parameters('vaults_kv_intesysw468283610195_name'))]"
+            ],
+            "properties": {
+                "contentType": "application/NotProvided",
+                "attributes": {
+                    "enabled": true,
+                    "exp": 2048315484
+                }
+            }
+        },
+        {
+            "type": "Microsoft.KeyVault/vaults/secrets",
+            "apiVersion": "2024-04-01-preview",
+            "name": "[concat(parameters('vaults_kv_intesysw468283610195_name'), '/ecabdfd2-6e7f-4a8c-8420-e3ca27832cc3-intesyswikisearch468283610195')]",
+            "location": "swedencentral",
+            "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', parameters('vaults_kv_intesysw468283610195_name'))]"
+            ],
+            "properties": {
+                "contentType": "application/NotProvided",
+                "attributes": {
+                    "enabled": true,
+                    "exp": 2048315882
+                }
+            }
+        },
+        {
+            "type": "Microsoft.KeyVault/vaults/secrets",
+            "apiVersion": "2024-04-01-preview",
+            "name": "[concat(parameters('vaults_kv_intesysw468283610195_name'), '/ecabdfd2-6e7f-4a8c-8420-e3ca27832cc3-intesyswikiservices468283610195')]",
+            "location": "swedencentral",
+            "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', parameters('vaults_kv_intesysw468283610195_name'))]"
+            ],
+            "properties": {
+                "contentType": "application/NotProvided",
+                "attributes": {
+                    "enabled": true,
+                    "exp": 2048315488
+                }
+            }
+        },
+        {
+            "type": "Microsoft.KeyVault/vaults/secrets",
+            "apiVersion": "2024-04-01-preview",
+            "name": "[concat(parameters('vaults_kv_intesysw468283610195_name'), '/ecabdfd2-6e7f-4a8c-8420-e3ca27832cc3-intesyswikiservices468283610195aoai')]",
+            "location": "swedencentral",
+            "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', parameters('vaults_kv_intesysw468283610195_name'))]"
+            ],
+            "properties": {
+                "contentType": "application/NotProvided",
+                "attributes": {
+                    "enabled": true,
+                    "exp": 2048315485
+                }
+            }
+        },
+        {
+            "type": "Microsoft.MachineLearningServices/workspaces/datastores",
+            "apiVersion": "2024-07-01-preview",
+            "name": "[concat(parameters('workspaces_intesys_wiki_project_name'), '/workspaceartifactstore')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.MachineLearningServices/workspaces', parameters('workspaces_intesys_wiki_project_name'))]"
+            ],
+            "properties": {
+                "credentials": {
+                    "credentialsType": "Sas",
+                    "secrets": {
+                        "secretsType": "[parameters('datastores_workspaceartifactstore_secretsType')]"
+                    }
+                },
+                "datastoreType": "AzureBlob",
+                "accountName": "stintesyswik468283610195",
+                "containerName": "cb0656be-8ec1-4f59-952b-524c9f6b656a-azureml",
+                "endpoint": "core.windows.net",
+                "protocol": "https",
+                "serviceDataAccessAuthIdentity": "None"
+            }
+        },
+        {
+            "type": "Microsoft.MachineLearningServices/workspaces/datastores",
+            "apiVersion": "2024-07-01-preview",
+            "name": "[concat(parameters('workspaces_intesys_wiki_project_name'), '/workspaceblobstore')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.MachineLearningServices/workspaces', parameters('workspaces_intesys_wiki_project_name'))]"
+            ],
+            "properties": {
+                "credentials": {
+                    "credentialsType": "Sas",
+                    "secrets": {
+                        "secretsType": "[parameters('datastores_workspaceblobstore_secretsType')]"
+                    }
+                },
+                "subscriptionId": "a4960d25-acf8-4da7-9de6-9b003393f340",
+                "resourceGroup": "rg-AzureAI-Intesys",
+                "datastoreType": "AzureBlob",
+                "accountName": "stintesyswik468283610195",
+                "containerName": "cb0656be-8ec1-4f59-952b-524c9f6b656a-azureml-blobstore",
+                "endpoint": "core.windows.net",
+                "protocol": "https",
+                "serviceDataAccessAuthIdentity": "WorkspaceSystemAssignedIdentity"
+            }
+        },
+        {
+            "type": "Microsoft.MachineLearningServices/workspaces/datastores",
+            "apiVersion": "2024-07-01-preview",
+            "name": "[concat(parameters('workspaces_intesys_wiki_project_name'), '/workspaceworkingdirectory')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.MachineLearningServices/workspaces', parameters('workspaces_intesys_wiki_project_name'))]"
+            ],
+            "properties": {
+                "credentials": {
+                    "credentialsType": "AccountKey",
+                    "secrets": {
+                        "secretsType": "[parameters('datastores_workspaceworkingdirectory_secretsType')]"
+                    }
+                },
+                "datastoreType": "AzureFile",
+                "accountName": "stintesyswik468283610195",
+                "fileShareName": "cb0656be-8ec1-4f59-952b-524c9f6b656a-code",
+                "endpoint": "core.windows.net",
+                "protocol": "https",
+                "serviceDataAccessAuthIdentity": "None"
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/blobServices",
+            "apiVersion": "2023-05-01",
+            "name": "[concat(parameters('storageAccounts_stintesyswik468283610195_name'), '/default')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccounts_stintesyswik468283610195_name'))]"
+            ],
+            "sku": {
+                "name": "Standard_LRS",
+                "tier": "Standard"
+            },
+            "properties": {
+                "cors": {
+                    "corsRules": [
+                        {
+                            "allowedOrigins": [
+                                "https://mlworkspace.azure.ai",
+                                "https://ml.azure.com",
+                                "https://*.ml.azure.com",
+                                "https://ai.azure.com",
+                                "https://*.ai.azure.com"
+                            ],
+                            "allowedMethods": [
+                                "GET",
+                                "HEAD",
+                                "PUT",
+                                "DELETE",
+                                "OPTIONS",
+                                "POST",
+                                "PATCH"
+                            ],
+                            "maxAgeInSeconds": 1800,
+                            "exposedHeaders": [
+                                "*"
+                            ],
+                            "allowedHeaders": [
+                                "*"
+                            ]
+                        }
+                    ]
+                },
+                "deleteRetentionPolicy": {
+                    "allowPermanentDelete": false,
+                    "enabled": false
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/fileServices",
+            "apiVersion": "2023-05-01",
+            "name": "[concat(parameters('storageAccounts_stintesyswik468283610195_name'), '/default')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccounts_stintesyswik468283610195_name'))]"
+            ],
+            "sku": {
+                "name": "Standard_LRS",
+                "tier": "Standard"
+            },
+            "properties": {
+                "protocolSettings": {
+                    "smb": {}
+                },
+                "cors": {
+                    "corsRules": [
+                        {
+                            "allowedOrigins": [
+                                "https://mlworkspace.azure.ai",
+                                "https://ml.azure.com",
+                                "https://*.ml.azure.com",
+                                "https://ai.azure.com",
+                                "https://*.ai.azure.com"
+                            ],
+                            "allowedMethods": [
+                                "GET",
+                                "HEAD",
+                                "PUT",
+                                "DELETE",
+                                "OPTIONS",
+                                "POST"
+                            ],
+                            "maxAgeInSeconds": 1800,
+                            "exposedHeaders": [
+                                "*"
+                            ],
+                            "allowedHeaders": [
+                                "*"
+                            ]
+                        }
+                    ]
+                },
+                "shareDeleteRetentionPolicy": {
+                    "enabled": true,
+                    "days": 7
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/queueServices",
+            "apiVersion": "2023-05-01",
+            "name": "[concat(parameters('storageAccounts_stintesyswik468283610195_name'), '/default')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccounts_stintesyswik468283610195_name'))]"
+            ],
+            "properties": {
+                "cors": {
+                    "corsRules": []
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/tableServices",
+            "apiVersion": "2023-05-01",
+            "name": "[concat(parameters('storageAccounts_stintesyswik468283610195_name'), '/default')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccounts_stintesyswik468283610195_name'))]"
+            ],
+            "properties": {
+                "cors": {
+                    "corsRules": []
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Web/sites",
+            "apiVersion": "2023-12-01",
+            "name": "[parameters('sites_intesys_wiki_ai_chat_web_name')]",
+            "location": "Italy North",
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/serverfarms', parameters('serverfarms_asp_intesys_wiki_ai_chat_web_name'))]"
+            ],
+            "tags": {
+                "ProjectType": "aoai-your-data-service"
+            },
+            "kind": "app,linux",
+            "identity": {
+                "type": "SystemAssigned"
+            },
+            "properties": {
+                "enabled": true,
+                "hostNameSslStates": [
+                    {
+                        "name": "[concat(parameters('sites_intesys_wiki_ai_chat_web_name'), '.azurewebsites.net')]",
+                        "sslState": "Disabled",
+                        "hostType": "Standard"
+                    },
+                    {
+                        "name": "[concat(parameters('sites_intesys_wiki_ai_chat_web_name'), '.scm.azurewebsites.net')]",
+                        "sslState": "Disabled",
+                        "hostType": "Repository"
+                    }
+                ],
+                "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('serverfarms_asp_intesys_wiki_ai_chat_web_name'))]",
+                "reserved": true,
+                "isXenon": false,
+                "hyperV": false,
+                "dnsConfiguration": {},
+                "vnetRouteAllEnabled": false,
+                "vnetImagePullEnabled": false,
+                "vnetContentShareEnabled": false,
+                "siteConfig": {
+                    "numberOfWorkers": 1,
+                    "linuxFxVersion": "PYTHON|3.11",
+                    "acrUseManagedIdentityCreds": false,
+                    "alwaysOn": true,
+                    "http20Enabled": false,
+                    "functionAppScaleLimit": 0,
+                    "minimumElasticInstanceCount": 0
+                },
+                "scmSiteAlsoStopped": false,
+                "clientAffinityEnabled": true,
+                "clientCertEnabled": false,
+                "clientCertMode": "Required",
+                "hostNamesDisabled": false,
+                "vnetBackupRestoreEnabled": false,
+                "customDomainVerificationId": "83E98CCDB64FCA7BDA6886FFD7584AF8EDC93B9EE8BB17880301940125AAC02F",
+                "containerSize": 0,
+                "dailyMemoryTimeQuota": 0,
+                "httpsOnly": true,
+                "redundancyMode": "None",
+                "storageAccountRequired": false,
+                "keyVaultReferenceIdentity": "SystemAssigned"
+            }
+        },
+        {
+            "type": "Microsoft.Web/sites/basicPublishingCredentialsPolicies",
+            "apiVersion": "2023-12-01",
+            "name": "[concat(parameters('sites_intesys_wiki_ai_chat_web_name'), '/ftp')]",
+            "location": "Italy North",
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('sites_intesys_wiki_ai_chat_web_name'))]"
+            ],
+            "tags": {
+                "ProjectType": "aoai-your-data-service"
+            },
+            "properties": {
+                "allow": true
+            }
+        },
+        {
+            "type": "Microsoft.Web/sites/basicPublishingCredentialsPolicies",
+            "apiVersion": "2023-12-01",
+            "name": "[concat(parameters('sites_intesys_wiki_ai_chat_web_name'), '/scm')]",
+            "location": "Italy North",
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('sites_intesys_wiki_ai_chat_web_name'))]"
+            ],
+            "tags": {
+                "ProjectType": "aoai-your-data-service"
+            },
+            "properties": {
+                "allow": true
+            }
+        },
+        {
+            "type": "Microsoft.Web/sites/config",
+            "apiVersion": "2023-12-01",
+            "name": "[concat(parameters('sites_intesys_wiki_ai_chat_web_name'), '/web')]",
+            "location": "Italy North",
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('sites_intesys_wiki_ai_chat_web_name'))]"
+            ],
+            "tags": {
+                "ProjectType": "aoai-your-data-service"
+            },
+            "properties": {
+                "numberOfWorkers": 1,
+                "defaultDocuments": [
+                    "Default.htm",
+                    "Default.html",
+                    "Default.asp",
+                    "index.htm",
+                    "index.html",
+                    "iisstart.htm",
+                    "default.aspx",
+                    "index.php",
+                    "hostingstart.html"
+                ],
+                "netFrameworkVersion": "v4.0",
+                "linuxFxVersion": "PYTHON|3.11",
+                "requestTracingEnabled": false,
+                "remoteDebuggingEnabled": false,
+                "httpLoggingEnabled": false,
+                "acrUseManagedIdentityCreds": false,
+                "logsDirectorySizeLimit": 35,
+                "detailedErrorLoggingEnabled": false,
+                "publishingUsername": "$intesys-wiki-ai-chat-web",
+                "scmType": "ExternalGit",
+                "use32BitWorkerProcess": true,
+                "webSocketsEnabled": false,
+                "alwaysOn": true,
+                "appCommandLine": "python3 -m gunicorn app:app",
+                "managedPipelineMode": "Integrated",
+                "virtualApplications": [
+                    {
+                        "virtualPath": "/",
+                        "physicalPath": "site\\wwwroot",
+                        "preloadEnabled": true
+                    }
+                ],
+                "loadBalancing": "LeastRequests",
+                "experiments": {
+                    "rampUpRules": []
+                },
+                "autoHealEnabled": false,
+                "vnetRouteAllEnabled": false,
+                "vnetPrivatePortsCount": 0,
+                "localMySqlEnabled": false,
+                "managedServiceIdentityId": 1975,
+                "ipSecurityRestrictions": [
+                    {
+                        "ipAddress": "Any",
+                        "action": "Allow",
+                        "priority": 2147483647,
+                        "name": "Allow all",
+                        "description": "Allow all access"
+                    }
+                ],
+                "scmIpSecurityRestrictions": [
+                    {
+                        "ipAddress": "Any",
+                        "action": "Allow",
+                        "priority": 2147483647,
+                        "name": "Allow all",
+                        "description": "Allow all access"
+                    }
+                ],
+                "scmIpSecurityRestrictionsUseMain": false,
+                "http20Enabled": false,
+                "minTlsVersion": "1.2",
+                "scmMinTlsVersion": "1.2",
+                "ftpsState": "FtpsOnly",
+                "preWarmedInstanceCount": 0,
+                "elasticWebAppScaleLimit": 0,
+                "functionsRuntimeScaleMonitoringEnabled": false,
+                "minimumElasticInstanceCount": 0,
+                "azureStorageAccounts": {}
+            }
+        },
+        {
+            "type": "Microsoft.Web/sites/deployments",
+            "apiVersion": "2023-12-01",
+            "name": "[concat(parameters('sites_intesys_wiki_ai_chat_web_name'), '/3b22853c45dd8c4d47c7a16fc6421dbe25d95a51')]",
+            "location": "Italy North",
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('sites_intesys_wiki_ai_chat_web_name'))]"
+            ],
+            "properties": {
+                "status": 1,
+                "author_email": "130756603+Musa-Anwaar@users.noreply.github.com",
+                "author": "Musa Anwaar",
+                "deployer": "GitHub",
+                "message": "This fixes #1173 (#1174)",
+                "start_time": "2024-11-28T16:38:19.949571Z",
+                "end_time": "2024-11-28T16:35:18.1611319Z",
+                "active": true
+            }
+        },
+        {
+            "type": "Microsoft.Web/sites/deployments",
+            "apiVersion": "2023-12-01",
+            "name": "[concat(parameters('sites_intesys_wiki_ai_chat_web_name'), '/temp-082461db')]",
+            "location": "Italy North",
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('sites_intesys_wiki_ai_chat_web_name'))]"
+            ],
+            "properties": {
+                "status": 0,
+                "author_email": "N/A",
+                "author": "N/A",
+                "deployer": "GitHub",
+                "message": "Fetch from https://github.com/microsoft/sample-app-aoai-chatGPT.git",
+                "start_time": "2024-11-28T16:38:08.2922816Z",
+                "active": false
+            }
+        },
+        {
+            "type": "Microsoft.Web/sites/hostNameBindings",
+            "apiVersion": "2023-12-01",
+            "name": "[concat(parameters('sites_intesys_wiki_ai_chat_web_name'), '/', parameters('sites_intesys_wiki_ai_chat_web_name'), '.azurewebsites.net')]",
+            "location": "Italy North",
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('sites_intesys_wiki_ai_chat_web_name'))]"
+            ],
+            "properties": {
+                "siteName": "intesys-wiki-ai-chat-web",
+                "hostNameType": "Verified"
+            }
+        },
+        {
+            "type": "Microsoft.MachineLearningServices/workspaces/connections",
+            "apiVersion": "2024-07-01-preview",
+            "name": "[concat(parameters('workspaces_intesys_wiki_hub_name'), '/AzureAISearch')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.MachineLearningServices/workspaces', parameters('workspaces_intesys_wiki_hub_name'))]",
+                "[resourceId('Microsoft.Search/searchServices', parameters('searchServices_intesys_wiki_search468283610195_name'))]"
+            ],
+            "properties": {
+                "authType": "ApiKey",
+                "category": "CognitiveSearch",
+                "target": "https://intesys-wiki-search468283610195.search.windows.net",
+                "useWorkspaceManagedIdentity": false,
+                "isSharedToAll": true,
+                "sharedUserList": [],
+                "peRequirement": "NotRequired",
+                "peStatus": "NotApplicable",
+                "metadata": {
+                    "ApiType": "Azure",
+                    "ResourceId": "[resourceId('Microsoft.Search/searchServices', parameters('searchServices_intesys_wiki_search468283610195_name'))]",
+                    "Location": "swedencentral",
+                    "ApiVersion": "2024-05-01-preview",
+                    "DeploymentApiVersion": "2023-11-01"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.MachineLearningServices/workspaces/connections",
+            "apiVersion": "2024-07-01-preview",
+            "name": "[concat(parameters('workspaces_intesys_wiki_project_name'), '/AzureAISearch')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.MachineLearningServices/workspaces', parameters('workspaces_intesys_wiki_project_name'))]",
+                "[resourceId('Microsoft.Search/searchServices', parameters('searchServices_intesys_wiki_search468283610195_name'))]"
+            ],
+            "properties": {
+                "authType": "ApiKey",
+                "category": "CognitiveSearch",
+                "target": "https://intesys-wiki-search468283610195.search.windows.net",
+                "useWorkspaceManagedIdentity": false,
+                "isSharedToAll": true,
+                "sharedUserList": [],
+                "peRequirement": "NotRequired",
+                "peStatus": "NotApplicable",
+                "metadata": {
+                    "ApiType": "Azure",
+                    "ResourceId": "[resourceId('Microsoft.Search/searchServices', parameters('searchServices_intesys_wiki_search468283610195_name'))]",
+                    "Location": "swedencentral",
+                    "ApiVersion": "2024-05-01-preview",
+                    "DeploymentApiVersion": "2023-11-01"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.MachineLearningServices/workspaces/connections",
+            "apiVersion": "2024-07-01-preview",
+            "name": "[concat(parameters('workspaces_intesys_wiki_hub_name'), '/intesyswikisearch468283610195')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.MachineLearningServices/workspaces', parameters('workspaces_intesys_wiki_hub_name'))]",
+                "[resourceId('Microsoft.Search/searchServices', parameters('searchServices_intesys_wiki_search468283610195_name'))]"
+            ],
+            "properties": {
+                "authType": "ApiKey",
+                "category": "CognitiveSearch",
+                "target": "https://intesys-wiki-search468283610195.search.windows.net/",
+                "useWorkspaceManagedIdentity": false,
+                "isSharedToAll": true,
+                "sharedUserList": [],
+                "peRequirement": "NotRequired",
+                "peStatus": "NotApplicable",
+                "metadata": {
+                    "type": "azure_ai_search",
+                    "ApiType": "Azure",
+                    "ResourceId": "[resourceId('Microsoft.Search/searchServices', parameters('searchServices_intesys_wiki_search468283610195_name'))]",
+                    "ApiVersion": "2024-05-01-preview",
+                    "DeploymentApiVersion": "2023-11-01"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.MachineLearningServices/workspaces/connections",
+            "apiVersion": "2024-07-01-preview",
+            "name": "[concat(parameters('workspaces_intesys_wiki_project_name'), '/intesyswikisearch468283610195')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.MachineLearningServices/workspaces', parameters('workspaces_intesys_wiki_project_name'))]",
+                "[resourceId('Microsoft.Search/searchServices', parameters('searchServices_intesys_wiki_search468283610195_name'))]"
+            ],
+            "properties": {
+                "authType": "ApiKey",
+                "category": "CognitiveSearch",
+                "target": "https://intesys-wiki-search468283610195.search.windows.net/",
+                "useWorkspaceManagedIdentity": false,
+                "isSharedToAll": true,
+                "sharedUserList": [],
+                "peRequirement": "NotRequired",
+                "peStatus": "NotApplicable",
+                "metadata": {
+                    "type": "azure_ai_search",
+                    "ApiType": "Azure",
+                    "ResourceId": "[resourceId('Microsoft.Search/searchServices', parameters('searchServices_intesys_wiki_search468283610195_name'))]",
+                    "ApiVersion": "2024-05-01-preview",
+                    "DeploymentApiVersion": "2023-11-01"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.MachineLearningServices/workspaces/connections",
+            "apiVersion": "2024-07-01-preview",
+            "name": "[concat(parameters('workspaces_intesys_wiki_hub_name'), '/intesys-wiki-services468283610195')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.MachineLearningServices/workspaces', parameters('workspaces_intesys_wiki_hub_name'))]",
+                "[resourceId('Microsoft.CognitiveServices/accounts', parameters('accounts_intesys_wiki_services468283610195_name'))]"
+            ],
+            "properties": {
+                "authType": "ApiKey",
+                "category": "AIServices",
+                "target": "https://intesys-wiki-services468283610195.cognitiveservices.azure.com/",
+                "useWorkspaceManagedIdentity": true,
+                "isSharedToAll": true,
+                "sharedUserList": [],
+                "peRequirement": "NotRequired",
+                "peStatus": "NotApplicable",
+                "metadata": {
+                    "ApiType": "Azure",
+                    "ResourceId": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('accounts_intesys_wiki_services468283610195_name'))]",
+                    "Location": "swedencentral",
+                    "ApiVersion": "2023-07-01-preview",
+                    "DeploymentApiVersion": "2023-10-01-preview"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.MachineLearningServices/workspaces/connections",
+            "apiVersion": "2024-07-01-preview",
+            "name": "[concat(parameters('workspaces_intesys_wiki_project_name'), '/intesys-wiki-services468283610195')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.MachineLearningServices/workspaces', parameters('workspaces_intesys_wiki_project_name'))]",
+                "[resourceId('Microsoft.CognitiveServices/accounts', parameters('accounts_intesys_wiki_services468283610195_name'))]"
+            ],
+            "properties": {
+                "authType": "ApiKey",
+                "category": "AIServices",
+                "target": "https://intesys-wiki-services468283610195.cognitiveservices.azure.com/",
+                "useWorkspaceManagedIdentity": true,
+                "isSharedToAll": true,
+                "sharedUserList": [],
+                "peRequirement": "NotRequired",
+                "peStatus": "NotApplicable",
+                "metadata": {
+                    "ApiType": "Azure",
+                    "ResourceId": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('accounts_intesys_wiki_services468283610195_name'))]",
+                    "Location": "swedencentral",
+                    "ApiVersion": "2023-07-01-preview",
+                    "DeploymentApiVersion": "2023-10-01-preview"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.MachineLearningServices/workspaces/connections",
+            "apiVersion": "2024-07-01-preview",
+            "name": "[concat(parameters('workspaces_intesys_wiki_hub_name'), '/intesys-wiki-services468283610195_aoai')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.MachineLearningServices/workspaces', parameters('workspaces_intesys_wiki_hub_name'))]",
+                "[resourceId('Microsoft.CognitiveServices/accounts', parameters('accounts_intesys_wiki_services468283610195_name'))]"
+            ],
+            "properties": {
+                "authType": "ApiKey",
+                "category": "AzureOpenAI",
+                "target": "https://intesys-wiki-services468283610195.openai.azure.com/",
+                "useWorkspaceManagedIdentity": true,
+                "isSharedToAll": true,
+                "sharedUserList": [],
+                "peRequirement": "NotRequired",
+                "peStatus": "NotApplicable",
+                "metadata": {
+                    "ApiType": "Azure",
+                    "ResourceId": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('accounts_intesys_wiki_services468283610195_name'))]",
+                    "Location": "swedencentral",
+                    "ApiVersion": "2023-07-01-preview",
+                    "DeploymentApiVersion": "2023-10-01-preview"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.MachineLearningServices/workspaces/connections",
+            "apiVersion": "2024-07-01-preview",
+            "name": "[concat(parameters('workspaces_intesys_wiki_project_name'), '/intesys-wiki-services468283610195_aoai')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.MachineLearningServices/workspaces', parameters('workspaces_intesys_wiki_project_name'))]",
+                "[resourceId('Microsoft.CognitiveServices/accounts', parameters('accounts_intesys_wiki_services468283610195_name'))]"
+            ],
+            "properties": {
+                "authType": "ApiKey",
+                "category": "AzureOpenAI",
+                "target": "https://intesys-wiki-services468283610195.openai.azure.com/",
+                "useWorkspaceManagedIdentity": true,
+                "isSharedToAll": true,
+                "sharedUserList": [],
+                "peRequirement": "NotRequired",
+                "peStatus": "NotApplicable",
+                "metadata": {
+                    "ApiType": "Azure",
+                    "ResourceId": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('accounts_intesys_wiki_services468283610195_name'))]",
+                    "Location": "swedencentral",
+                    "ApiVersion": "2023-07-01-preview",
+                    "DeploymentApiVersion": "2023-10-01-preview"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.MachineLearningServices/workspaces/connections/deployments",
+            "apiVersion": "2024-07-01-preview",
+            "name": "[concat(parameters('workspaces_intesys_wiki_hub_name'), '/intesys-wiki-services468283610195_aoai/gpt-4o-mini')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.MachineLearningServices/workspaces/connections', parameters('workspaces_intesys_wiki_hub_name'), 'intesys-wiki-services468283610195_aoai')]",
+                "[resourceId('Microsoft.MachineLearningServices/workspaces', parameters('workspaces_intesys_wiki_hub_name'))]"
+            ],
+            "sku": {
+                "name": "GlobalStandard",
+                "capacity": 10
+            },
+            "properties": {}
+        },
+        {
+            "type": "Microsoft.MachineLearningServices/workspaces/connections/deployments",
+            "apiVersion": "2024-07-01-preview",
+            "name": "[concat(parameters('workspaces_intesys_wiki_hub_name'), '/intesys-wiki-services468283610195_aoai/text-embedding-ada-002')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.MachineLearningServices/workspaces/connections', parameters('workspaces_intesys_wiki_hub_name'), 'intesys-wiki-services468283610195_aoai')]",
+                "[resourceId('Microsoft.MachineLearningServices/workspaces', parameters('workspaces_intesys_wiki_hub_name'))]"
+            ],
+            "sku": {
+                "name": "Standard",
+                "capacity": 110
+            },
+            "properties": {}
+        },
+        {
+            "type": "Microsoft.MachineLearningServices/workspaces/connections/raiPolicies",
+            "apiVersion": "2024-07-01-preview",
+            "name": "[concat(parameters('workspaces_intesys_wiki_hub_name'), '/intesys-wiki-services468283610195_aoai/Microsoft.Default')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.MachineLearningServices/workspaces/connections', parameters('workspaces_intesys_wiki_hub_name'), 'intesys-wiki-services468283610195_aoai')]",
+                "[resourceId('Microsoft.MachineLearningServices/workspaces', parameters('workspaces_intesys_wiki_hub_name'))]"
+            ],
+            "properties": {
+                "type": "SystemManaged",
+                "mode": "Blocking",
+                "contentFilters": [
+                    {
+                        "name": "Hate",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Prompt"
+                    },
+                    {
+                        "name": "Hate",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Completion"
+                    },
+                    {
+                        "name": "Sexual",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Prompt"
+                    },
+                    {
+                        "name": "Sexual",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Completion"
+                    },
+                    {
+                        "name": "Violence",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Prompt"
+                    },
+                    {
+                        "name": "Violence",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Completion"
+                    },
+                    {
+                        "name": "Selfharm",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Prompt"
+                    },
+                    {
+                        "name": "Selfharm",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Completion"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.MachineLearningServices/workspaces/connections/raiPolicies",
+            "apiVersion": "2024-07-01-preview",
+            "name": "[concat(parameters('workspaces_intesys_wiki_hub_name'), '/intesys-wiki-services468283610195_aoai/Microsoft.DefaultV2')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.MachineLearningServices/workspaces/connections', parameters('workspaces_intesys_wiki_hub_name'), 'intesys-wiki-services468283610195_aoai')]",
+                "[resourceId('Microsoft.MachineLearningServices/workspaces', parameters('workspaces_intesys_wiki_hub_name'))]"
+            ],
+            "properties": {
+                "type": "SystemManaged",
+                "mode": "Blocking",
+                "contentFilters": [
+                    {
+                        "name": "Hate",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Prompt"
+                    },
+                    {
+                        "name": "Hate",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Completion"
+                    },
+                    {
+                        "name": "Sexual",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Prompt"
+                    },
+                    {
+                        "name": "Sexual",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Completion"
+                    },
+                    {
+                        "name": "Violence",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Prompt"
+                    },
+                    {
+                        "name": "Violence",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Completion"
+                    },
+                    {
+                        "name": "Selfharm",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Prompt"
+                    },
+                    {
+                        "name": "Selfharm",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Completion"
+                    },
+                    {
+                        "name": "Jailbreak",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Prompt"
+                    },
+                    {
+                        "name": "Protected Material Text",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Completion"
+                    },
+                    {
+                        "name": "Protected Material Code",
+                        "blocking": false,
+                        "enabled": true,
+                        "source": "Completion"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+            "apiVersion": "2023-05-01",
+            "name": "[concat(parameters('storageAccounts_stintesyswik468283610195_name'), '/default/cb0656be-8ec1-4f59-952b-524c9f6b656a-7xjqge2sss85fwa06q8qmuhig8')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts/blobServices', parameters('storageAccounts_stintesyswik468283610195_name'), 'default')]",
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccounts_stintesyswik468283610195_name'))]"
+            ],
+            "properties": {
+                "immutableStorageWithVersioning": {
+                    "enabled": false
+                },
+                "defaultEncryptionScope": "$account-encryption-key",
+                "denyEncryptionScopeOverride": false,
+                "publicAccess": "None"
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+            "apiVersion": "2023-05-01",
+            "name": "[concat(parameters('storageAccounts_stintesyswik468283610195_name'), '/default/cb0656be-8ec1-4f59-952b-524c9f6b656a-azureml')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts/blobServices', parameters('storageAccounts_stintesyswik468283610195_name'), 'default')]",
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccounts_stintesyswik468283610195_name'))]"
+            ],
+            "properties": {
+                "immutableStorageWithVersioning": {
+                    "enabled": false
+                },
+                "defaultEncryptionScope": "$account-encryption-key",
+                "denyEncryptionScopeOverride": false,
+                "publicAccess": "None"
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+            "apiVersion": "2023-05-01",
+            "name": "[concat(parameters('storageAccounts_stintesyswik468283610195_name'), '/default/cb0656be-8ec1-4f59-952b-524c9f6b656a-azureml-blobstore')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts/blobServices', parameters('storageAccounts_stintesyswik468283610195_name'), 'default')]",
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccounts_stintesyswik468283610195_name'))]"
+            ],
+            "properties": {
+                "immutableStorageWithVersioning": {
+                    "enabled": false
+                },
+                "defaultEncryptionScope": "$account-encryption-key",
+                "denyEncryptionScopeOverride": false,
+                "publicAccess": "None"
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+            "apiVersion": "2023-05-01",
+            "name": "[concat(parameters('storageAccounts_stintesyswik468283610195_name'), '/default/cb0656be-8ec1-4f59-952b-524c9f6b656a-ux03hvq8bbmt7cf8zmugn4mw0f')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts/blobServices', parameters('storageAccounts_stintesyswik468283610195_name'), 'default')]",
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccounts_stintesyswik468283610195_name'))]"
+            ],
+            "properties": {
+                "immutableStorageWithVersioning": {
+                    "enabled": false
+                },
+                "defaultEncryptionScope": "$account-encryption-key",
+                "denyEncryptionScopeOverride": false,
+                "publicAccess": "None"
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+            "apiVersion": "2023-05-01",
+            "name": "[concat(parameters('storageAccounts_stintesyswik468283610195_name'), '/default/insights-logs-auditevent')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts/blobServices', parameters('storageAccounts_stintesyswik468283610195_name'), 'default')]",
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccounts_stintesyswik468283610195_name'))]"
+            ],
+            "properties": {
+                "immutableStorageWithVersioning": {
+                    "enabled": false
+                },
+                "defaultEncryptionScope": "$account-encryption-key",
+                "denyEncryptionScopeOverride": false,
+                "publicAccess": "None"
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+            "apiVersion": "2023-05-01",
+            "name": "[concat(parameters('storageAccounts_stintesyswik468283610195_name'), '/default/insights-metrics-pt1m')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts/blobServices', parameters('storageAccounts_stintesyswik468283610195_name'), 'default')]",
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccounts_stintesyswik468283610195_name'))]"
+            ],
+            "properties": {
+                "immutableStorageWithVersioning": {
+                    "enabled": false
+                },
+                "defaultEncryptionScope": "$account-encryption-key",
+                "denyEncryptionScopeOverride": false,
+                "publicAccess": "None"
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/fileServices/shares",
+            "apiVersion": "2023-05-01",
+            "name": "[concat(parameters('storageAccounts_stintesyswik468283610195_name'), '/default/cb0656be-8ec1-4f59-952b-524c9f6b656a-code')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts/fileServices', parameters('storageAccounts_stintesyswik468283610195_name'), 'default')]",
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccounts_stintesyswik468283610195_name'))]"
+            ],
+            "properties": {
+                "accessTier": "TransactionOptimized",
+                "shareQuota": 102400,
+                "enabledProtocols": "SMB"
+            }
+        },
+        {
+            "type": "Microsoft.MachineLearningServices/workspaces",
+            "apiVersion": "2024-07-01-preview",
+            "name": "[parameters('workspaces_intesys_wiki_hub_name')]",
+            "location": "swedencentral",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccounts_stintesyswik468283610195_name'))]",
+                "[resourceId('Microsoft.KeyVault/vaults', parameters('vaults_kv_intesysw468283610195_name'))]",
+                "[resourceId('Microsoft.MachineLearningServices/workspaces', parameters('workspaces_intesys_wiki_project_name'))]"
+            ],
+            "tags": {
+                "__SYSTEM__CognitiveSearch_AzureAISearch": "/subscriptions/a4960d25-acf8-4da7-9de6-9b003393f340/resourceGroups/rg-AzureAI-Intesys/providers/Microsoft.Search/searchServices/intesys-wiki-search468283610195",
+                "__SYSTEM__AzureOpenAI_intesys-wiki-services468283610195_aoai": "/subscriptions/a4960d25-acf8-4da7-9de6-9b003393f340/resourceGroups/rg-AzureAI-Intesys/providers/Microsoft.CognitiveServices/accounts/intesys-wiki-services468283610195",
+                "__SYSTEM__AIServices_intesys-wiki-services468283610195": "/subscriptions/a4960d25-acf8-4da7-9de6-9b003393f340/resourceGroups/rg-AzureAI-Intesys/providers/Microsoft.CognitiveServices/accounts/intesys-wiki-services468283610195",
+                "__SYSTEM__CognitiveSearch_intesyswikisearch468283610195": "/subscriptions/a4960d25-acf8-4da7-9de6-9b003393f340/resourceGroups/rg-AzureAI-Intesys/providers/Microsoft.Search/searchServices/intesys-wiki-search468283610195"
+            },
+            "sku": {
+                "name": "Basic",
+                "tier": "Basic"
+            },
+            "kind": "Hub",
+            "identity": {
+                "type": "SystemAssigned"
+            },
+            "properties": {
+                "friendlyName": "[parameters('workspaces_intesys_wiki_hub_name')]",
+                "storageAccount": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccounts_stintesyswik468283610195_name'))]",
+                "keyVault": "[resourceId('Microsoft.KeyVault/vaults', parameters('vaults_kv_intesysw468283610195_name'))]",
+                "hbiWorkspace": false,
+                "managedNetwork": {
+                    "isolationMode": "Disabled"
+                },
+                "allowRoleAssignmentOnRG": true,
+                "v1LegacyMode": false,
+                "publicNetworkAccess": "Enabled",
+                "ipAllowlist": [],
+                "discoveryUrl": "https://swedencentral.api.azureml.ms/discovery",
+                "EnableSoftwareBillOfMaterials": false,
+                "associatedWorkspaces": [
+                    "[resourceId('Microsoft.MachineLearningServices/workspaces', parameters('workspaces_intesys_wiki_project_name'))]"
+                ],
+                "workspaceHubConfig": {
+                    "defaultWorkspaceResourceGroup": "/subscriptions/a4960d25-acf8-4da7-9de6-9b003393f340/resourceGroups/rg-AzureAI-Intesys"
+                },
+                "enableDataIsolation": true,
+                "systemDatastoresAuthMode": "accesskey",
+                "enableServiceSideCMKEncryption": false
+            }
+        },
+        {
+            "type": "Microsoft.MachineLearningServices/workspaces",
+            "apiVersion": "2024-07-01-preview",
+            "name": "[parameters('workspaces_intesys_wiki_project_name')]",
+            "location": "swedencentral",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccounts_stintesyswik468283610195_name'))]",
+                "[resourceId('Microsoft.KeyVault/vaults', parameters('vaults_kv_intesysw468283610195_name'))]",
+                "[resourceId('Microsoft.MachineLearningServices/workspaces', parameters('workspaces_intesys_wiki_hub_name'))]"
+            ],
+            "sku": {
+                "name": "Basic",
+                "tier": "Basic"
+            },
+            "kind": "Project",
+            "identity": {
+                "type": "SystemAssigned"
+            },
+            "properties": {
+                "friendlyName": "[parameters('workspaces_intesys_wiki_project_name')]",
+                "storageAccount": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccounts_stintesyswik468283610195_name'))]",
+                "keyVault": "[resourceId('Microsoft.KeyVault/vaults', parameters('vaults_kv_intesysw468283610195_name'))]",
+                "hbiWorkspace": false,
+                "managedNetwork": {
+                    "isolationMode": "Disabled"
+                },
+                "allowRoleAssignmentOnRG": false,
+                "v1LegacyMode": false,
+                "publicNetworkAccess": "Enabled",
+                "ipAllowlist": [],
+                "discoveryUrl": "https://swedencentral.api.azureml.ms/discovery",
+                "EnableSoftwareBillOfMaterials": false,
+                "hubResourceId": "[resourceId('Microsoft.MachineLearningServices/workspaces', parameters('workspaces_intesys_wiki_hub_name'))]",
+                "enableDataIsolation": true,
+                "systemDatastoresAuthMode": "accesskey",
+                "enableServiceSideCMKEncryption": false
+            }
+        }
+    ]
+}
